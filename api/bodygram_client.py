@@ -178,22 +178,22 @@ class BodygramClient:
             return None
     
     def extract_measurements(self, scan_response):
-        """Extract and format measurements from API response"""
+        """Extract and format all measurements from API response"""
         if not scan_response:
             print("No scan response data to extract measurements from")
             return None
-        
+
         # Debug the response structure
         print("\nExtracting measurements from response...")
-        
+
         # Check if 'entry' exists
         if "entry" not in scan_response:
             print("Response doesn't contain 'entry' key")
             print("Response keys:", list(scan_response.keys()))
             return None
-        
+
         entry = scan_response["entry"]
-        
+
         # Check for status
         if "status" in entry:
             status = entry["status"]
@@ -201,55 +201,39 @@ class BodygramClient:
             if status != "success":
                 print(f"Scan not completed successfully, status: {status}")
                 return None
-        
+
         # Check for measurements
         if "measurements" not in entry:
             print("No measurements found in response")
             print("Entry keys:", list(entry.keys()))
             return None
-        
+
         measurements_data = entry["measurements"]
         print(f"Found {len(measurements_data)} measurements")
-        
-        # Map API measurement names to tailor measurement names
-        measurement_mapping = {
-            "neckCircumference": "Neck Circumference",
-            "acrossBackShoulderWidth": "Shoulder Width",  # Note: this matches the documentation example
-            "chestCircumference": "Chest Circumference",
-            "waistCircumference": "Waist/Stomach Circumference",
-            "armLength": "Sleeve Length",  # This might be different in actual API
-            "wristCircumference": "Wrist Circumference",
-            "backLength": "Back Length",
-            "bicepCircumference": "Bicep Circumference"
-        }
-        
-        # Format measurements for tailor use
-        tailor_measurements = {}
-        
+
+        # Collect all measurements in a dictionary
+        all_measurements = {}
+
         for measurement in measurements_data:
-            # Check the structure of each measurement
             if "name" not in measurement or "value" not in measurement:
                 print(f"Unexpected measurement format: {measurement}")
                 continue
-                
+
             api_name = measurement["name"]
             value = measurement["value"]
             unit = measurement.get("unit", "mm")
-            
-            # Try to find matching tailor measurement
-            if api_name in measurement_mapping:
-                tailor_name = measurement_mapping[api_name]
-                # Convert from mm to inches (1 mm = 0.0393701 inches) if unit is mm
-                if unit == "mm":
-                    value_inches = value * 0.0393701
-                    tailor_measurements[tailor_name] = f"{value_inches:.2f}\""
-                else:
-                    tailor_measurements[tailor_name] = f"{value} {unit}"
+
+            # Convert from mm to inches if unit is mm
+            if unit == "mm":
+                value_inches = value * 0.0393701
+                formatted_value = f"{value_inches:.2f}\""
             else:
-                # Also collect unknown measurements for debugging
-                print(f"Unknown measurement: {api_name} = {value} {unit}")
-        
-        return tailor_measurements
+                formatted_value = f"{value} {unit}"
+
+            # Store the measurement
+            all_measurements[api_name] = formatted_value
+
+        return all_measurements
 
     def save_avatar(self, scan_response, output_path="avatar.obj"):
         """Save the 3D avatar from the scan response"""
